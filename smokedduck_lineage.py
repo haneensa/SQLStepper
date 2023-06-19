@@ -266,6 +266,16 @@ def getRowLineage(qid, plan, depth, lineage_json):
     lineage_relation = lineage_relation.iloc[random_values]
     """
     if op_name in ["HASH_JOIN", "CROSS_PRODUCT", "INDEX_JOIN", "PIECEWISE_MERGE_JOIN", "NESTED_LOOP_JOIN", "BLOCKWISE_NL_JOIN"]:
+        limit = 200
+        if len(lineage_relation) > limit:
+            lineage_json["info"][plan["name"]]["str"] += ". {} sampled lineage edges out of {}".format(limit, len(lineage_relation))
+            #lineage_relation = lineage_relation.iloc[:limit]
+            s = 0
+            e = len(lineage_relation)
+            num_rows = min(limit, len(lineage_relation))
+            random_values = np.random.choice(np.arange(s, e), size=num_rows, replace=False)
+            random_values = np.sort(random_values)
+            lineage_relation = lineage_relation.iloc[random_values]
         lineage_lhs = [[int(row['out_index']), int(row['lhs_index'])] for index, row in lineage_relation.iterrows()]
         lineage_rhs = [[int(row['out_index']), int(row['rhs_index'])] for index, row in lineage_relation.iterrows()]
         lineage_out[plan["name"]] = [[0, lineage_lhs]]
@@ -282,6 +292,8 @@ def GetDisplayName(plan):
     opname = OperatorName(plan["name"])
     if opname == "HASH_JOIN":
         return "HJ"
+    elif opname == "DELIM_JOIN":
+        return "delim join"
     elif opname == "SEQ_SCAN":
         return plan["column_lineage"]["table_name"]
     elif opname in ["HASH_GROUP_BY", "PERFECT_HASH_GROUP_BY"]:
@@ -292,10 +304,8 @@ def GetDisplayName(plan):
         return "agg"
     elif opname == "ORDER_BY":
         return "order by"
-    elif opname in ["LIMIT", "FILTER", "PROJECTION"]:
-        return opname.lower()
     else:
-        return plan["name"].lower()
+        return opname.lower()
 def getInfo(qid, plan, depth, lineage_json):
     """
     return info : dict(opid : opinfo)

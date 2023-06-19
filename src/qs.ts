@@ -10,7 +10,7 @@ export const queries = [
 FROM
     lineitem
 WHERE
-    l_shipdate <= CAST('1998-09-02' AS date)
+    l_shipdate <= CAST('1993-12-02' AS date)
 GROUP BY
     l_returnflag, l_linestatus
 ORDER BY
