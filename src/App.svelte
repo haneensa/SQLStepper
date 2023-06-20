@@ -239,7 +239,7 @@
 
 <main class="container-fluid">
  <h1 class="display-4">
-  SQLTutor Visualizes Query Execution <small><a href="https://github.com/haneensa/SQLStepper">GitHub</a></small>
+   SQLTutor Visualizes Query Execution
   </h1>
   
   <div class="row">
@@ -321,7 +321,7 @@
 <div class="row footer" style="margin-top: 3em;">
   <div class="col-md-8 offset-md-2 text-center" style="border-top: 1px solid grey;">
     <p style="font-size:smaller;">
-      See <a href="https://github.com/haneensa/SQLStepper">github repo</a> for code.
+      See <a href="https://github.com/haneensa/SQLStepper/tree/sigmod-demo">github repo</a> for code.
       Implemented using a forked version of
       <a href="https://github.com/reallocf/duckdb/tree/lineage_capture">DuckDB</a>
       and table vis from <a href="https://pandastutor.com/">pandastutor</a>.
