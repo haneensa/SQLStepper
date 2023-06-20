@@ -234,12 +234,12 @@
 
 </style>
 
-<Bug id="modalBug" reportBug={reportBug} />
+<!--Bug id="modalBug" reportBug={reportBug} /-->
 
 
 <main class="container-fluid">
  <h1 class="display-4">
-  SQLTutor Visualizes Query Execution <small><a href="https://github.com/cudbg/sqltutor">GitHub</a></small>
+  SQLTutor Visualizes Query Execution <small><a href="https://github.com/haneensa/SQLStepper">GitHub</a></small>
   </h1>
   
   <div class="row">
@@ -247,13 +247,13 @@
       <p>
         <strong>SQLTutor</strong> visualizes each operator in the SQL query plan.
         Click on an operator to visualize its input and output tables, along with their row/column dependencies
-        (called <a href="https://arxiv.org/abs/1801.07237">data provenance</a>).
+        (called <a href="https://dl.acm.org/doi/abs/10.1145/3555041.3589731?casa_token=Vz4Qotq3XOEAAAAA:4YyPliwzUs7idhXMijjgvFVGxr5oVBjMtRuN8GAPJn8c18Y-9opN0Ev1DksDci2Pj7gQu-lQWPc">data provenance</a>).
         You can add new tables using the <mark>CSV</mark> textarea. The CSV should include a header row.
       </p>
 
       <p style="font-size: smaller;">
         <!--<a target="_blank" href={`https://docs.google.com/forms/d/e/1FAIpQLSeqdk3ZqQms92iaGq5rKV6yUdnhLcRllc8igQPl1KGUwfCEUw/viewform?usp=pp_url&entry.351077705=${encodeURI(q)}&entry.1154671727=${encodeURI(csv)}&entry.1900716371=${encodeURI(errmsg)}`} class="link">Report a bug</a>. -->
-        <a href="#" class="link" data-bs-toggle="modal" data-bs-target="#modalBug">Report a bug or feature request</a>.
+        <!--a href="#" class="link" data-bs-toggle="modal" data-bs-target="#modalBug">Report a bug or feature request</a-->.
         <br/>
         <!--Want to help? Contact us!-->
       </p>
@@ -321,16 +321,11 @@
 <div class="row footer" style="margin-top: 3em;">
   <div class="col-md-8 offset-md-2 text-center" style="border-top: 1px solid grey;">
     <p style="font-size:smaller;">
-      See <a href="https://github.com/cudbg/sqltutor">github repo</a> for code.
-      Implemented using
-      <a href="">DuckDB version x</a>
+      See <a href="https://github.com/haneensa/SQLStepper">github repo</a> for code.
+      Implemented using a forked version of
+      <a href="https://github.com/reallocf/duckdb/tree/lineage_capture">DuckDB</a>
       and table vis from <a href="https://pandastutor.com/">pandastutor</a>.
     </p>
-
-    <p style="font-size:smaller;">
-      Privacy Policy: By using SQLTutor, your queries, CSVs, user interactions, and IP address are logged and may be
-      analyzed for research purposes
-      </p>
     </div>
   </div>
 </main>
