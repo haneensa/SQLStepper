@@ -89,14 +89,18 @@
     g.selectAll("*").remove()
     await tick()
 
+    let plan_width = clientWidth - clientWidth/2;
     console.log(svgEl.parentNode)
-    console.log(clientWidth)
-    treemap = tree().size([clientWidth-margin.l-margin.r, h-margin.t-margin.b]);
+    console.log(clientWidth, plan_width)
+    treemap = tree().size([plan_width-margin.l-margin.r, h-margin.t-margin.b])
+    .separation(function separation(a, b) {
+        return a.parent == b.parent ? 3 : 3;
+    });
     nodes = treemap(nodes);
 
     svg
       .attr("height", h)
-      .attr("width", clientWidth)
+      .attr("width", plan_width)
 
     // adds the links between the nodes
     var link = g.selectAll(".link")
@@ -156,10 +160,8 @@
   svg circle.hover {
     fill: gray;
   }
-  .prequery {
-    padding: 1em;
-  }
   .queryText {
+    text-align: left !important;
     white-space: pre-wrap;
   }
 
@@ -168,19 +170,26 @@
 <svelte:window on:keydown={onKey}/>
 
 
-<div bind:clientWidth={clientWidth}>
+<div class="container" style="padding: 0;" bind:clientWidth={clientWidth}>
   <h3>
     Query Plan
     <button class="btn btn-sm btn-outline-primary" on:click={() => step(-1)}>prev (&leftarrow;)</button>
     <button class="btn btn-sm btn-outline-primary" on:click={() => step(1)}>next (&rightarrow;)</button>
   </h3>
 <!--<button id="visualizeButton" type="button" on:click={onClick}>Visualize Entire Query Plan</button>-->
-<!--pre class="prequery"><code class="queryText">{$lineageData.qstr}</code></pre-->
+
+<div class="row">
+  <div class="col" style="text-align: left;">
+    <code class="queryText">{$lineageData.qstr}</code>
+  </div>
+  <div class="col">
 <svg id="qPlanTreeSVG"  bind:this={svgEl}>
   <g 
      id="qPlanTree" 
      transform={`translate(${margin.l}, ${margin.t})`}
      bind:this={gEl} />
 </svg>
+  </div>
+</div>
 </div>
 
