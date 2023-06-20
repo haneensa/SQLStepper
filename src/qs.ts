@@ -4,17 +4,16 @@ export const queries = [
     name: "TPCH Q1: Pricing Summary Report Query",
     q: `SELECT
     l_returnflag, l_linestatus, sum(l_quantity) AS sum_qty,
-    sum(l_extendedprice) AS sum_base_price, sum(l_extendedprice * (1 - l_discount)) AS sum_disc_price,
-    sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) AS sum_charge, avg(l_quantity) AS avg_qty,
-    avg(l_extendedprice) AS avg_price, avg(l_discount) AS avg_disc, count(*) AS count_order
-FROM
-    lineitem
-WHERE
-    l_shipdate <= CAST('1993-12-02' AS date)
-GROUP BY
-    l_returnflag, l_linestatus
-ORDER BY
-    l_returnflag, l_linestatus
+    sum(l_extendedprice) AS sum_base_price,
+    sum(l_extendedprice*(1-l_discount)) AS sum_disc_price,
+    sum(l_extendedprice*(1-l_discount)*(1+l_tax)) AS sum_charge,
+    avg(l_quantity) AS avg_qty,
+    avg(l_extendedprice) AS avg_price,
+    avg(l_discount) AS avg_disc, count(*) AS count_order
+FROM lineitem
+WHERE l_shipdate <= CAST('1993-12-02' AS date)
+GROUP BY l_returnflag, l_linestatus
+ORDER BY l_returnflag, l_linestatus
     `
   },
   {
@@ -22,8 +21,7 @@ ORDER BY
     q: `SELECT
     s_acctbal, s_name, n_name, p_partkey, p_mfgr,
     s_address, s_phone, s_comment
-FROM
-    part, supplier, partsupp, nation, region
+FROM part, supplier, partsupp, nation, region
 WHERE
     p_partkey = ps_partkey
     AND s_suppkey = ps_suppkey
@@ -72,8 +70,7 @@ LIMIT 10;
     name: "TPCH Q4: Order Priority Checking Query",
     q: `SELECT
     o_orderpriority, count(*) AS order_count
-FROM
-    orders
+FROM orders
 WHERE
     o_orderdate >= CAST('1993-07-01' AS date)
     AND o_orderdate < CAST('1993-10-01' AS date)
@@ -85,10 +82,8 @@ WHERE
         WHERE
             l_orderkey = o_orderkey
             AND l_commitdate < l_receiptdate)
-GROUP BY
-    o_orderpriority
-ORDER BY
-    o_orderpriority;
+GROUP BY o_orderpriority
+ORDER BY o_orderpriority;
 `
   },
   {
@@ -117,10 +112,8 @@ ORDER BY
     name: "TPCH Q6: Forecasting Revenue Change Query",
     q: `SELECT
     sum(l_extendedprice * l_discount) AS revenue
-FROM
-    lineitem
-WHERE
-    l_shipdate >= CAST('1994-01-01' AS date)
+FROM lineitem
+WHERE l_shipdate >= CAST('1994-01-01' AS date)
     AND l_shipdate < CAST('1995-01-01' AS date)
     AND l_discount BETWEEN 0.05
     AND 0.07
@@ -139,8 +132,7 @@ FROM (
         l_extendedprice * (1 - l_discount) AS volume
     FROM
         supplier, lineitem, orders, customer, nation n1, nation n2
-    WHERE
-        s_suppkey = l_suppkey
+    WHERE s_suppkey = l_suppkey
         AND o_orderkey = l_orderkey
         AND c_custkey = o_custkey
         AND s_nationkey = n1.n_nationkey
@@ -151,20 +143,15 @@ FROM (
                 AND n2.n_name = 'FRANCE'))
         AND l_shipdate BETWEEN CAST('1995-01-01' AS date)
         AND CAST('1996-12-31' AS date)) AS shipping
-GROUP BY
-    supp_nation, cust_nation, l_year
-ORDER BY
-    supp_nation, cust_nation, l_year;`
+GROUP BY supp_nation, cust_nation, l_year
+ORDER BY supp_nation, cust_nation, l_year;`
   },
   {
     name: "TPCH Q8: National Market Share Query",
     q: `SELECT
     o_year,
-    sum(
-        CASE WHEN nation = 'BRAZIL' THEN
-            volume
-        ELSE
-            0
+    sum(CASE WHEN nation = 'BRAZIL' THEN volume
+        ELSE 0
         END) / sum(volume) AS mkt_share
 FROM (
     SELECT
@@ -185,11 +172,8 @@ FROM (
         AND o_orderdate BETWEEN CAST('1995-01-01' AS date)
         AND CAST('1996-12-31' AS date)
         AND p_type = 'ECONOMY ANODIZED STEEL') AS all_nations
-GROUP BY
-    o_year
-ORDER BY
-    o_year;
-`
+GROUP BY o_year
+ORDER BY o_year;`
   },
   {
     name: "TPCH Q9: Product Type Measure Query",
@@ -267,22 +251,13 @@ ORDER BY
     name: "TPCH Q12: Shipping Mode and Order Priority Query",
     q: `SELECT
     l_shipmode,
-    sum(
-        CASE WHEN o_orderpriority = '1-URGENT'
-            OR o_orderpriority = '2-HIGH' THEN
-            1
-        ELSE
-            0
-        END) AS high_line_count,
-    sum(
-        CASE WHEN o_orderpriority <> '1-URGENT'
-            AND o_orderpriority <> '2-HIGH' THEN
-            1
-        ELSE
-            0
-        END) AS low_line_count
-FROM
-    orders, lineitem
+    sum( CASE WHEN o_orderpriority = '1-URGENT'
+         OR o_orderpriority = '2-HIGH' THEN 1
+         ELSE 0 END) AS high_line_count,
+    sum( CASE WHEN o_orderpriority <> '1-URGENT'
+         AND o_orderpriority <> '2-HIGH' THEN 1
+         ELSE 0 END) AS low_line_count
+FROM orders, lineitem
 WHERE
     o_orderkey = l_orderkey
     AND l_shipmode IN ('MAIL', 'SHIP')
@@ -290,10 +265,8 @@ WHERE
     AND l_shipdate < l_commitdate
     AND l_receiptdate >= CAST('1994-01-01' AS date)
     AND l_receiptdate < CAST('1995-01-01' AS date)
-GROUP BY
-    l_shipmode
-ORDER BY
-    l_shipmode;
+GROUP BY l_shipmode
+ORDER BY l_shipmode;
 `
   },
   {
@@ -319,35 +292,26 @@ ORDER BY
   },
   {
     name: "TPCH Q14: Promotion Effect",
-    q: `
-    SELECT
+    q: `SELECT
     100.00 * sum(
         CASE WHEN p_type LIKE 'PROMO%' THEN
             l_extendedprice * (1 - l_discount)
-        ELSE
-            0
+        ELSE 0
         END) / sum(l_extendedprice * (1 - l_discount)) AS promo_revenue
-FROM
-    lineitem, part
-WHERE
-    l_partkey = p_partkey
+FROM lineitem, part
+WHERE l_partkey = p_partkey
     AND l_shipdate >= date '1995-09-01'
-    AND l_shipdate < CAST('1995-10-01' AS date);
-`
+    AND l_shipdate < CAST('1995-10-01' AS date);`
   },
   {
     name: "TPCH Q15: Top Supplier Query",
     q: `with revenue0 (supplier_no, total_revenue) as (
-	select
-		l_suppkey,
-		sum(l_extendedprice * (1 - l_discount))
-	from
-		lineitem
-	where
-		l_shipdate >= date '1996-01-01'
-		and l_shipdate < date '1996-01-01' + interval '3' month
-	group by
-		l_suppkey
+  select l_suppkey,
+	sum(l_extendedprice * (1 - l_discount))
+	from lineitem
+	where	l_shipdate >= date '1996-01-01'
+	and l_shipdate < date '1996-01-01' + interval '3' month
+	group by l_suppkey
 )
 
 SELECT
@@ -432,31 +396,26 @@ LIMIT 100;`
   },
   {
     name: "TPCH Q19: Discounted Revenue Query",
-    q: `SELECT
-    sum(l_extendedprice * (1 - l_discount)) AS revenue
-FROM
-    lineitem, part
+    q: `SELECT sum(l_extendedprice * (1 - l_discount)) AS revenue
+FROM lineitem, part
 WHERE (p_partkey = l_partkey
     AND p_brand = 'Brand#12'
     AND p_container IN ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
-    AND l_quantity >= 1
-    AND l_quantity <= 1 + 10
+    AND l_quantity >= 1 AND l_quantity <= 1 + 10
     AND p_size BETWEEN 1 AND 5
     AND l_shipmode IN ('AIR', 'AIR REG')
     AND l_shipinstruct = 'DELIVER IN PERSON')
     OR (p_partkey = l_partkey
         AND p_brand = 'Brand#23'
-        AND p_container IN ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
-        AND l_quantity >= 10
-        AND l_quantity <= 10 + 10
+        AND p_container IN ('MED BAG', 'MED BOX', 'MED PKG')
+        AND l_quantity >= 10 AND l_quantity <= 10 + 10
         AND p_size BETWEEN 1 AND 10
         AND l_shipmode IN ('AIR', 'AIR REG')
         AND l_shipinstruct = 'DELIVER IN PERSON')
     OR (p_partkey = l_partkey
         AND p_brand = 'Brand#34'
-        AND p_container IN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
-        AND l_quantity >= 20
-        AND l_quantity <= 20 + 10
+        AND p_container IN ('LG CASE', 'LG BOX', 'LG PACK')
+        AND l_quantity >= 20 AND l_quantity <= 20 + 10
         AND p_size BETWEEN 1 AND 15
         AND l_shipmode IN ('AIR', 'AIR REG')
         AND l_shipinstruct = 'DELIVER IN PERSON');`
@@ -492,36 +451,27 @@ WHERE
     name: "TPCH Q21: Suppliers Who Kept Orders Waiting Query",
     q: `SELECT
     s_name, count(*) AS numwait
-FROM
-    supplier, lineitem l1, orders, nation
-WHERE
-    s_suppkey = l1.l_suppkey
+FROM supplier, lineitem l1, orders, nation
+WHERE s_suppkey = l1.l_suppkey
     AND o_orderkey = l1.l_orderkey
     AND o_orderstatus = 'F'
     AND l1.l_receiptdate > l1.l_commitdate
     AND EXISTS (
-        SELECT
-            *
-        FROM
-            lineitem l2
+        SELECT *
+        FROM lineitem l2
         WHERE
             l2.l_orderkey = l1.l_orderkey
             AND l2.l_suppkey <> l1.l_suppkey)
     AND NOT EXISTS (
-        SELECT
-            *
-        FROM
-            lineitem l3
-        WHERE
-            l3.l_orderkey = l1.l_orderkey
+        SELECT *
+        FROM lineitem l3
+        WHERE l3.l_orderkey = l1.l_orderkey
             AND l3.l_suppkey <> l1.l_suppkey
             AND l3.l_receiptdate > l3.l_commitdate)
     AND s_nationkey = n_nationkey
     AND n_name = 'SAUDI ARABIA'
-GROUP BY
-    s_name
-ORDER BY
-    numwait DESC, s_name
+GROUP BY s_name
+ORDER BY numwait DESC, s_name
 LIMIT 100;
 `
   },
@@ -533,29 +483,21 @@ FROM (
     SELECT
         substring(c_phone FROM 1 FOR 2) AS cntrycode,
         c_acctbal
-    FROM
-        customer
+    FROM customer
     WHERE
         substring(c_phone FROM 1 FOR 2) IN ('13', '31', '23', '29', '30', '18', '17')
         AND c_acctbal > (
-            SELECT
-                avg(c_acctbal)
-            FROM
-                customer
-            WHERE
-                c_acctbal > 0.00
+            SELECT avg(c_acctbal)
+            FROM customer
+            WHERE c_acctbal > 0.00
                 AND substring(c_phone FROM 1 FOR 2) IN ('13', '31', '23', '29', '30', '18', '17'))
             AND NOT EXISTS (
-                SELECT
-                    *
-                FROM
-                    orders
+                SELECT *
+                FROM orders
                 WHERE
                     o_custkey = c_custkey)) AS custsale
-GROUP BY
-    cntrycode
-ORDER BY
-    cntrycode;
+GROUP BY cntrycode
+ORDER BY cntrycode;
 `
   }
 ]
