@@ -276,6 +276,8 @@ def getRowLineage(qid, plan, depth, lineage_json):
             random_values = np.random.choice(np.arange(s, e), size=num_rows, replace=False)
             random_values = np.sort(random_values)
             lineage_relation = lineage_relation.iloc[random_values]
+        lineage_relation['lhs_index'] = lineage_relation['lhs_index'].fillna(-1)
+        lineage_relation['rhs_index'] = lineage_relation['rhs_index'].fillna(-1)
         lineage_lhs = [[int(row['out_index']), int(row['lhs_index'])] for index, row in lineage_relation.iterrows()]
         lineage_rhs = [[int(row['out_index']), int(row['rhs_index'])] for index, row in lineage_relation.iterrows()]
         lineage_out[plan["name"]] = [[0, lineage_lhs]]
