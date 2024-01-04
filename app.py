@@ -4,7 +4,7 @@ from flask_cors import CORS
 import pandas as pd
 import io
 
-from smokedduck_lineage import extractMetadata, runQuery, serializeLineage, debug, addDelimJoinAnnotation
+from smokedduck_lineage import extractMetadata, runQuery, serializeLineage, addDelimJoinAnnotation
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +23,7 @@ def hello_world():
     return "<p>Hello, World!</p>"
 
 
-def DropLineageTables(con):
+def DropLineageTables(con: duckdb.DuckDBPyConnection):
     tables = con.execute("PRAGMA show_tables").fetchdf()
     # TODO: clear in-mem lineage
     for index, row in tables.iterrows():
@@ -41,11 +41,12 @@ def execute_sql():
 
     con = client_connections[client_id]
 
-    df, qid, plan = runQuery(con, query, "query")
+    df, qid, plan = runQuery(con, query)
     
     addDelimJoinAnnotation(plan)
     extractMetadata(con, qid, plan, 0)
     lineage_json = serializeLineage(qid, plan, 0, {})
+    lineage_json["qstr"] = query 
     # drop all lineage tables
     #print("*****", lineage_json)
     DropLineageTables(con)

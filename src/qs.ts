@@ -26,7 +26,6 @@ WHERE
     p_partkey = ps_partkey
     AND s_suppkey = ps_suppkey
     AND p_size = 15
-    AND p_type LIKE '%BRASS'
     AND s_nationkey = n_nationkey
     AND n_regionkey = r_regionkey
     AND r_name = 'EUROPE'
@@ -99,7 +98,7 @@ WHERE
     AND c_nationkey = s_nationkey
     AND s_nationkey = n_nationkey
     AND n_regionkey = r_regionkey
-    AND r_name = 'ASIA'
+    AND r_name = 'AMERICA'
     AND o_orderdate >= CAST('1994-01-01' AS date)
     AND o_orderdate < CAST('1995-01-01' AS date)
 GROUP BY
@@ -138,8 +137,8 @@ FROM (
         AND s_nationkey = n1.n_nationkey
         AND c_nationkey = n2.n_nationkey
         AND ((n1.n_name = 'FRANCE'
-                AND n2.n_name = 'GERMANY')
-            OR (n1.n_name = 'GERMANY'
+                AND n2.n_name = 'MOROCCO')
+            OR (n1.n_name = 'MOROCCO'
                 AND n2.n_name = 'FRANCE'))
         AND l_shipdate BETWEEN CAST('1995-01-01' AS date)
         AND CAST('1996-12-31' AS date)) AS shipping
@@ -230,7 +229,7 @@ FROM
 WHERE
     ps_suppkey = s_suppkey
     AND s_nationkey = n_nationkey
-    AND n_name = 'GERMANY'
+    AND n_name = 'IRAQ'
 GROUP BY
     ps_partkey
 HAVING
@@ -242,7 +241,7 @@ HAVING
         WHERE
             ps_suppkey = s_suppkey
             AND s_nationkey = n_nationkey
-            AND n_name = 'GERMANY')
+            AND n_name = 'IRAQ')
 ORDER BY
     value DESC;
 `
@@ -359,7 +358,6 @@ FROM
     lineitem, part
 WHERE
     p_partkey = l_partkey
-    AND p_brand = 'Brand#23'
     AND p_container = 'MED BOX'
     AND l_quantity < (
         SELECT
@@ -385,7 +383,7 @@ WHERE
         GROUP BY
             l_orderkey
         HAVING
-            sum(l_quantity) > 300)
+            sum(l_quantity) > 200)
     AND c_custkey = o_custkey
     AND o_orderkey = l_orderkey
 GROUP BY
@@ -406,14 +404,12 @@ WHERE (p_partkey = l_partkey
     AND l_shipmode IN ('AIR', 'AIR REG')
     AND l_shipinstruct = 'DELIVER IN PERSON')
     OR (p_partkey = l_partkey
-        AND p_brand = 'Brand#23'
         AND p_container IN ('MED BAG', 'MED BOX', 'MED PKG')
         AND l_quantity >= 10 AND l_quantity <= 10 + 10
         AND p_size BETWEEN 1 AND 10
         AND l_shipmode IN ('AIR', 'AIR REG')
         AND l_shipinstruct = 'DELIVER IN PERSON')
     OR (p_partkey = l_partkey
-        AND p_brand = 'Brand#34'
         AND p_container IN ('LG CASE', 'LG BOX', 'LG PACK')
         AND l_quantity >= 20 AND l_quantity <= 20 + 10
         AND p_size BETWEEN 1 AND 15
@@ -442,7 +438,7 @@ WHERE
                         AND l_shipdate >= CAST('1994-01-01' AS date)
                         AND l_shipdate < CAST('1995-01-01' AS date)))
             AND s_nationkey = n_nationkey
-            AND n_name = 'CANADA'
+            AND n_name = 'ETHIOPIA'
         ORDER BY
             s_name;
 `
@@ -469,7 +465,7 @@ WHERE s_suppkey = l1.l_suppkey
             AND l3.l_suppkey <> l1.l_suppkey
             AND l3.l_receiptdate > l3.l_commitdate)
     AND s_nationkey = n_nationkey
-    AND n_name = 'SAUDI ARABIA'
+    AND n_name = 'MOROCCO'
 GROUP BY s_name
 ORDER BY numwait DESC, s_name
 LIMIT 100;
