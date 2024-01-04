@@ -1,5 +1,3 @@
-# TODO: 1. simple aggregate column lineage
-#       2. top n and limit 
 #!/usr/bin/env python
 # coding: utf-8
 
@@ -9,42 +7,38 @@ import json
 import re
 
 def runQuery(con, q, qname):
-    json_fname = "{}.json".format(qname)
-    con.execute("PRAGMA enable_profiling = 'json';")
-    con.execute("PRAGMA profiling_output = '{}';".format(json_fname))
-
-    con.execute("PRAGMA trace_lineage = 'ON';")
-    con.execute("PRAGMA intermediate_tables = 'ON';")
+    con.execute('PRAGMA threads=1')
+    con.execute("PRAGMA enable_lineage ;")
+    con.execute("PRAGMA enable_intermediate_tables;")
     df = con.execute(q).fetchdf() 
-    con.execute("PRAGMA intermediate_tables = 'OFF';")
-    con.execute("PRAGMA trace_lineage = 'OFF';")
-    con.execute("PRAGMA disable_profiling;")
-    qid_df = con.execute("SELECT max(query_id) as latest_qid FROM duckdb_queries_list() WHERE query=?", [q]).fetchdf()
-    qid = qid_df['latest_qid'][0]
+    con.execute("PRAGMA disable_intermediate_tables;")
+    con.execute("PRAGMA disable_lineage;")
+    metadata_df = con.execute("SELECT query_id, plan FROM duckdb_queries_list() WHERE query=?", [q]).fetchdf()
+    c = len(metadata_df)
+    print(metadata_df)
+    qid = metadata_df['query_id'][c-1]
+    plan_text = metadata_df['plan'][c-1]
+    plan_json = json.loads(plan_text)
     
-    # read query plan file
-    with open(json_fname, 'r') as f:
-        plan = json.load(f)
-    return df, qid, plan
+    return df, qid, plan_json
 
 
-# get column mapping for each operator to filter intermediates
 def OperatorName(name):
     return "_".join(name.split("_")[:-1])
     
 def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
     """
     return operator level column lineage:
-    "original": str, # plan["extra_info"]
+    "original": str, # plan["extra"]
     "table_name":  str, # table_name
     "alias":  [str], # [alias(col) for each col in current operator]
     "column_ref": [int] # [indexFromChild(col) for each col in current operator]
     """
-    if "extra_info" not in plan:
-        return {"str": ""}
+    if "extra" not in plan:
+        return {}
     
-    extra_info = plan["extra_info"].split("[INFOSEPARATOR]")
-    results = {"original": extra_info, "str": ""}
+    extra = plan["extra"].split("[INFOSEPARATOR]")
+    results = {"original": extra}
     op_name = OperatorName(plan['name'])    
     
     print(op_name, parent["name"])
@@ -53,16 +47,15 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
 
     if op_name == "SEQ_SCAN":
         # Schema: table_name\nINFOSEPARATOR\ncolname_i for i in projection_list\nINFOSEPARATOR\nFilters: ..
-        results["table_name"] = extra_info[0].strip()
+        results["table_name"] = extra[0].strip()
         results["str"] += "Input: {}".format(results['table_name'])
-        if len(extra_info) > 1:
-            cols =  extra_info[1].strip().split("\n")
+        if len(extra) > 1:
+            cols =  extra[1].strip().split("\n")
             results["alias"] = [x.split("#DEL#")[0] for x in cols]
             results["col_ref"] = [x.split("#DEL#")[1].split(',') for x in cols]
             results["col_ref"] = [[int(i) for i in inner_lst] for inner_lst in results["col_ref"]]
             results["str"] += " | Cols: [{}].".format(', '.join(results["alias"]))
-
-        if len(extra_info) > 2:
+        if len(extra) > 2:
             results["filter_push"] = 1
             results["str"] += " | {}".format(extra_info[2].strip())
     elif op_name == "DELIM_SCAN":
@@ -88,7 +81,7 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
             results["str"] += "LIMIT"
     elif op_name == "PROJECTION":
         # Schema: hasFunction\nINFOSEPARATOR\nalias_i.col_1,col_2,..,col_n.name_i for i in projection_list
-        cols =  extra_info[1].strip().split("\n")
+        cols =  extra[1].strip().split("\n")
         results["alias"] = [x.split("#DEL#")[0] for x in cols]
         results["col_ref"] = [x.split("#DEL#")[1].split(',') for x in cols]
         results["col_ref"] = [[int(i) for i in inner_lst if i.isdigit()] for inner_lst in results["col_ref"]]
@@ -100,7 +93,7 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
         results["str"] += " Cols: [{}].".format(', '.join(results["alias"]))
 
     elif op_name in ["HASH_GROUP_BY", "PERFECT_HASH_GROUP_BY"]:
-        aggs = extra_info[0].strip().split("\n")
+        aggs = extra[0].strip().split("\n")
 
         if len(plan["children"]) > 0:
             child_col_lineage = plan["children"][0]["column_lineage"]["alias"]
@@ -120,7 +113,7 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
         results["str"] += "Key: [{}].".format(', '.join(gb_keys))
         results["str"] += ", Aggs: [{}].".format(', '.join(aggs_cols))
     elif op_name == "SIMPLE_AGGREGATE":
-        cols = extra_info[0].strip().split("\n")
+        cols = extra[0].strip().split("\n")
         results["alias"] = [x.split("#DEL#")[0] for x in cols]
         results["col_ref"] = [x.split("#DEL#")[1].split(',') for x in cols]
         results["col_ref"] = [[int(i) for i in inner_lst if i.isdigit()] for inner_lst in results["col_ref"]]
@@ -142,7 +135,7 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
     elif op_name in ["HASH_JOIN"]:
         results["table_name"] += "+" + plan['children'][1]["name"]
         results["alias"] = []
-        right_projection = extra_info[1].strip()
+        right_projection = extra[1].strip()
         if OperatorName(parent["name"]) == "DELIM_JOIN" and "delim_left" in plan:
             results["str"] += " Delim Join | "
             left = plan["delim_left"]
@@ -186,32 +179,21 @@ def getColumnLevelLineage(qid : int, plan : dict, parent : dict):
 def getLineagePerOperatortoPlan(con, qid, plan):
     # traverse the query plan, and 
     op_name = plan['name']
-    l_name = "LINEAGE_{}_{}".format(qid, op_name)        
+    l_name = "LINEAGE_{}_{}_0".format(qid, op_name)        
     ## for now, just merge data using python.
     ## TODO: enable querying logical operator lineage
     op_name = OperatorName(op_name)    
-    if  op_name in ["SEQ_SCAN", "ORDER_BY", "FILTER", "LIMIT"]:
-        extra_info = plan["extra_info"].split("[INFOSEPARATOR]")
-        if op_name == "SEQ_SCAN" and len(extra_info) < 2:
+    if op_name in ["SEQ_SCAN", "ORDER_BY", "FILTER", "LIMIT"]:
+        extra = plan["extra"].split("[INFOSEPARATOR]")
+        if op_name == "SEQ_SCAN" and len(extra) < 2:
             # one to one mapping, no need to persist
             return []
-        else:
-            l_name = l_name + "_0"
-            op_lineage = con.execute("select * from {}".format(l_name)).fetchdf()[["in_index", "out_index"]]
-    elif op_name in ["HASH_GROUP_BY", "PERFECT_HASH_GROUP_BY"]:
-        sink = con.execute("select * from {}".format(l_name+"_0")).fetchdf()
-        src = con.execute("select * from {}".format(l_name+"_1")).fetchdf()
-        op_lineage = pd.merge(sink, src, how='inner', left_on='out_index', right_on='in_index')
-        op_lineage = op_lineage[["in_index_x", "out_index_y"]].rename({'in_index_x':'in_index', 'out_index_y':'out_index'}, axis=1)
-    elif op_name in ["HASH_JOIN"]:
-        sink = con.execute("select * from {}".format(l_name+"_0")).fetchdf()
-        src = con.execute("select * from {}".format(l_name+"_1")).fetchdf()
-        op_lineage = pd.merge(sink, src, how='inner', left_on='out_index', right_on='rhs_index')
-        op_lineage = op_lineage[["in_index", "lhs_index", "out_index_y"]].rename({"in_index":"rhs_index", "out_index_y":"out_index"}, axis=1)
-    elif op_name in ["CROSS_PRODUCT", "INDEX_JOIN", "PIECEWISE_MERGE_JOIN", "NESTED_LOOP_JOIN", "BLOCKWISE_NL_JOIN"]:
-        op_lineage = con.execute("select * from {}".format(l_name+"_1")).fetchdf()
-    else:
+    
+    # skip
+    if op_name in ["PROJECTION"]:
         return []
+
+    op_lineage = con.execute("select * from {}".format(l_name)).fetchdf()
 
     return op_lineage
     
@@ -362,7 +344,7 @@ def getResults(qid, plan, depth, lineage_json):
         #base = base.iloc[:limit]
         s = 0
         e = len(base)
-        num_rows = min(limit, len(base))
+        num_rows = mi(limit, len(base))
         random_values = np.random.choice(np.arange(s, e), size=num_rows, replace=False)
         random_values = np.sort(random_values)
         base = base.iloc[random_values]
@@ -406,7 +388,6 @@ def serializeLineage(qid, plan, depth=0, lineage_json={}):
      # traverse the query plan, and 
     if depth == 0:
         # setup query level summary
-        lineage_json["qstr"] = plan["extra-info"]
         lineage_json["exprs"] = {}
         lineage_json["plan_depth"] = 0
         
@@ -477,7 +458,7 @@ def extractMetadata(con, qid, plan, depth=0):
         if len(base_table) > 0:
             c["input"] = base_table
 
-        #print("Intermediates for {} ".format(c['name']), c["output"])
+        print("Intermediates for {} ".format(c['name']), c["output"])
             
 
 ## Done - Add leaf node to indicate scan from base table since SEQ_SCAN can have filter pushed down
@@ -546,6 +527,8 @@ def process(con, q, qname):
     plan["children"][0]["column_lineage"]["alias"] = list(df.columns)
     
     lineage_json = serializeLineage(qid, plan, 0, {})
+    lineage_json["qstr"] = q
+
     #print("\nlineage json:\n", lineage_json)
 
     with open('{}.json'.format(qname), 'w') as outfile:
